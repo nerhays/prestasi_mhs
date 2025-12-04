@@ -1,0 +1,20 @@
+package model
+
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+type Achievement struct {
+	ID              primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	StudentID       string             `bson:"studentId" json:"studentId"`
+	AchievementType string             `bson:"achievementType" json:"achievementType"`
+	Title           string             `bson:"title" json:"title"`
+	Description     string             `bson:"description" json:"description"`
+	Details         map[string]any     `bson:"details" json:"details"`
+	Points          float64            `bson:"points" json:"points"`
+	Attachments     []any              `bson:"attachments" json:"attachments,omitempty"`
+	CreatedAt       time.Time          `bson:"createdAt" json:"createdAt"`
+	UpdatedAt       time.Time          `bson:"updatedAt" json:"updatedAt"`
+}

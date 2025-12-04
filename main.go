@@ -12,12 +12,9 @@ func main() {
 	cfg := config.LoadConfig()
 
 	pgDB := database.NewPostgres(cfg.PostgresDSN)
+	mongo := database.NewMongo(cfg.MongoURI, cfg.MongoDB)
 
-	database.Seed(pgDB)
-
-	_ = database.NewMongo(cfg.MongoURI, cfg.MongoDB) // dipakai achievements
-
-	r := route.SetupRouter(pgDB)
+	r := route.SetupRouter(pgDB, mongo.DB)
 
 	log.Printf("[APP] Server running on :%s\n", cfg.AppPort)
 	if err := r.Run(":" + cfg.AppPort); err != nil {

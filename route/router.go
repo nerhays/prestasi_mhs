@@ -4,12 +4,13 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
 
 	"github.com/nerhays/prestasi_uas/middleware"
 )
 
-func SetupRouter(db *gorm.DB) *gin.Engine {
+func SetupRouter(db *gorm.DB, mongoDB *mongo.Database) *gin.Engine {
 	r := gin.Default()
 
 	// health check (public)
@@ -31,6 +32,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	SetupRoleRoutes(protected, db)
 	SetupStudentRoutes(protected, db)
+	SetupAchievementRoutes(protected, db, mongoDB)
+
 	// SetupAchievementRoutes(protected, db, mongo)
 
 	return r
