@@ -13,6 +13,7 @@ import (
 type AchievementRepository interface {
 	Create(ctx context.Context, ac *model.Achievement) (*model.Achievement, error)
 	FindByStudentID(ctx context.Context, studentID string) ([]model.Achievement, error)
+	SoftDelete(ctx context.Context, mongoID string) error
 }
 
 type achievementRepository struct {
@@ -34,11 +35,18 @@ func (r *achievementRepository) Create(ctx context.Context, ac *model.Achievemen
 		return nil, err
 	}
 
-	ac.ID = res.InsertedID.(primitive.ObjectID)
+	if oid, ok := res.InsertedID.(primitive.ObjectID); ok {
+		ac.ID = oid
+	}
+
 	return ac, nil
 }
+
 func (r *achievementRepository) FindByStudentID(ctx context.Context, studentID string) ([]model.Achievement, error) {
-	filter := bson.M{"studentId": studentID}
+	filter := bson.M{
+		"studentId": studentID,
+		"isDeleted": bson.M{"$ne": true}, //tidak tampilkan yang soft delete
+	}
 
 	cur, err := r.collection.Find(ctx, filter)
 	if err != nil {
@@ -54,9 +62,30 @@ func (r *achievementRepository) FindByStudentID(ctx context.Context, studentID s
 		}
 		results = append(results, ac)
 	}
+
 	if err := cur.Err(); err != nil {
 		return nil, err
 	}
 
 	return results, nil
+}
+
+func (r *achievementRepository) SoftDelete(ctx context.Context, mongoID string) error {
+	objID, err := primitive.ObjectIDFromHex(mongoID)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": objID},
+		bson.M{
+			"$set": bson.M{
+				"isDeleted": true,
+				"deletedAt": time.Now(),
+			},
+		},
+	)
+
+	return err
 }
