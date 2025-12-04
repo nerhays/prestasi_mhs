@@ -4,9 +4,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/nerhays/prestasi_uas/app/model"
-
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/nerhays/prestasi_uas/app/model"
 )
 
 type JWTCustomClaims struct {
@@ -18,6 +17,7 @@ type JWTCustomClaims struct {
 	jwt.RegisteredClaims
 }
 
+// GenerateToken utk login
 func GenerateToken(user *model.User, permissions []model.Permission) (string, error) {
 	secret := []byte(os.Getenv("JWT_SECRET"))
 
@@ -40,4 +40,23 @@ func GenerateToken(user *model.User, permissions []model.Permission) (string, er
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(secret)
+}
+
+// ParseToken utk middleware
+func ParseToken(tokenStr string) (*JWTCustomClaims, error) {
+	secret := []byte(os.Getenv("JWT_SECRET"))
+
+	token, err := jwt.ParseWithClaims(tokenStr, &JWTCustomClaims{}, func(t *jwt.Token) (interface{}, error) {
+		return secret, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*JWTCustomClaims)
+	if !ok || !token.Valid {
+		return nil, jwt.ErrTokenInvalidClaims
+	}
+
+	return claims, nil
 }

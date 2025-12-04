@@ -5,12 +5,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	"github.com/nerhays/prestasi_uas/middleware"
 )
 
 func SetupRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
 
-	// health check
+	// health check (public)
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "ok",
@@ -19,11 +21,17 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	})
 
 	api := r.Group("/api/v1")
-	{
-		SetupRoleRoutes(api, db)
-		SetupAuthRoutes(api, db)
-		// SetupAchievementRoutes(api, db, mongo), dst.
-	}
+
+	// PUBLIC ROUTES
+	SetupAuthRoutes(api, db) // /auth/login
+
+	// PROTECTED ROUTES (JWT)
+	protected := api.Group("")
+	protected.Use(middleware.AuthMiddleware())
+
+	SetupRoleRoutes(protected, db)
+	SetupStudentRoutes(protected, db)
+	// SetupAchievementRoutes(protected, db, mongo)
 
 	return r
 }
