@@ -9,6 +9,7 @@ import (
 type UserRepository interface {
 	FindByUsernameOrEmail(usernameOrEmail string) (*model.User, error)
 	GetPermissionsByUserID(userID string) ([]model.Permission, error)
+	FindByID(id string) (*model.User, error)
 }
 
 type userRepository struct {
@@ -46,4 +47,14 @@ func (r *userRepository) GetPermissionsByUserID(userID string) ([]model.Permissi
 		return nil, err
 	}
 	return perms, nil
+}
+func (r *userRepository) FindByID(id string) (*model.User, error) {
+	var user model.User
+	if err := r.db.
+		Preload("Role").
+		Where("id = ?", id).
+		First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
 }

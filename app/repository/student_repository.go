@@ -7,6 +7,8 @@ import (
 
 type StudentRepository interface {
 	FindByUserID(userID string) (*model.Student, error)
+	FindByID(id string) (*model.Student, error)
+	FindByAdvisorLecturerID(lecturerID string) ([]model.Student, error)
 }
 
 type studentRepository struct {
@@ -26,4 +28,21 @@ func (r *studentRepository) FindByUserID(userID string) (*model.Student, error) 
 		return nil, err
 	}
 	return &student, nil
+}
+func (r *studentRepository) FindByID(id string) (*model.Student, error) {
+	var student model.Student
+	if err := r.db.
+		Preload("User.Role").
+		Where("id = ?", id).
+		First(&student).Error; err != nil {
+		return nil, err
+	}
+	return &student, nil
+}
+func (r *studentRepository) FindByAdvisorLecturerID(lecturerID string) ([]model.Student, error) {
+    var students []model.Student
+    if err := r.db.Where("advisor_id = ?", lecturerID).Find(&students).Error; err != nil {
+        return nil, err
+    }
+    return students, nil
 }
