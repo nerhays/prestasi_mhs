@@ -5,9 +5,13 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/nerhays/prestasi_uas/app/model"
 	"github.com/nerhays/prestasi_uas/app/repository"
 	"github.com/nerhays/prestasi_uas/app/service"
@@ -200,6 +204,67 @@ func (h *AchievementHandler) GetBimbingan(c *gin.Context) {
         "data": rows,
     })
 }
+func (h *AchievementHandler) UploadAttachment(c *gin.Context) {
+	// 🔑 ambil user dari context (WAJIB pakai constant)
+	userID := c.GetString(middleware.ContextUserIDKey)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		return
+	}
+
+	// refID = achievement_reference.id (Postgres UUID)
+	refID := c.Param("id")
+
+	// ambil file
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "file required"})
+		return
+	}
+
+	// validasi ekstensi (simple & aman)
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	if ext != ".pdf" && ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid file type"})
+		return
+	}
+
+	// buat folder jika belum ada
+	uploadDir := "uploads/achievements"
+	_ = os.MkdirAll(uploadDir, 0755)
+
+	// generate nama file aman
+	filename := uuid.New().String() + ext
+	filePath := filepath.Join(uploadDir, filename)
+
+	// simpan file ke disk
+	if err := c.SaveUploadedFile(file, filePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	// panggil service
+	attachment, err := h.svc.UploadAttachment(
+		c.Request.Context(),
+		userID,
+		refID,
+		filename,
+		"/"+filePath,
+		file.Header.Get("Content-Type"),
+	)
+	if err != nil {
+		_ = os.Remove(filePath) // rollback file
+		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data":   attachment,
+	})
+}
+
+
 
 func SetupAchievementRoutes(rg *gin.RouterGroup, db *gorm.DB, mongoDB *mongo.Database) {
 	achievementRepo := repository.NewAchievementRepository(mongoDB)
@@ -219,6 +284,8 @@ func SetupAchievementRoutes(rg *gin.RouterGroup, db *gorm.DB, mongoDB *mongo.Dat
 	ach.POST("/:id/submit", handler.Submit)
 	ach.DELETE("/:id", handler.Delete)
 	ach.GET("/deleted", handler.GetDeleted)
+	ach.POST("/:id/attachments", handler.UploadAttachment)
+
 
 
 	// dosen wali / admin

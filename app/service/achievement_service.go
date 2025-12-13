@@ -17,6 +17,7 @@ var (
     ErrNotAdvisor       = errors.New("only the assigned academic advisor can verify or reject this achievement")
 	ErrStudentNoAdvisor        = errors.New("student has no advisor assigned")
 	ErrLecturerNotFound        = errors.New("lecturer record not found")
+	ErrForbidden = errors.New("forbidden")
 )
 
 type AchievementService struct {
@@ -48,7 +49,12 @@ func NewAchievementService(
 // - cari student by userID
 // - insert achievement ke Mongo (pakai student.ID)
 // - insert achievement_reference ke Postgres (status draft)
-func (s *AchievementService) CreateAchievementForUser(ctx context.Context, userID string, ac *model.Achievement) (*model.Achievement, *model.AchievementReference, error) {
+func (s *AchievementService) CreateAchievementForUser(
+	ctx context.Context,
+	userID string,
+	ac *model.Achievement,
+) (*model.Achievement, *model.AchievementReference, error) {
+
 	// 1. Cari student berdasarkan userID
 	student, err := s.studentRepo.FindByUserID(userID)
 	if err != nil {
@@ -58,20 +64,39 @@ func (s *AchievementService) CreateAchievementForUser(ctx context.Context, userI
 	// 2. Set StudentID di dokumen Mongo = students.id (UUID)
 	ac.StudentID = student.ID
 
-	// 3. Insert ke Mongo
+	// 3. Convert eventDate (string → time.Time)
+	if v, ok := ac.Details["eventDate"]; ok {
+		if sDate, ok := v.(string); ok {
+			t, err := time.Parse("2006-01-02", sDate)
+			if err != nil {
+				return nil, nil, errors.New("invalid eventDate format, use YYYY-MM-DD")
+			}
+			ac.Details["eventDate"] = t
+		}
+	}
+
+	// 4. Pastikan attachments tidak nil (wajib utk Mongo schema)
+	if ac.Attachments == nil {
+		ac.Attachments = []any{}
+	}
+
+
+	// 5. Insert ke Mongo
 	createdAc, err := s.achievementRepo.Create(ctx, ac)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// 4. Insert reference ke Postgres (status: draft)
+	// 6. Insert reference ke Postgres (status: draft)
 	ref, err := s.refRepo.CreateDraft(student.ID, createdAc.ID.Hex())
 	if err != nil {
-		return createdAc, nil, err // achievement sudah dibuat, tapi reference gagal
+		// Mongo sudah terbuat, tapi ref gagal
+		return createdAc, nil, err
 	}
 
 	return createdAc, ref, nil
 }
+
 
 func (s *AchievementService) GetMyAchievements(ctx context.Context, userID string) ([]model.Achievement, error) {
 	student, err := s.studentRepo.FindByUserID(userID)
@@ -328,4 +353,40 @@ func (s *AchievementService) GetBimbinganAchievements(ctx context.Context, verif
     }
 
     return total, results, nil
+}
+func (s *AchievementService) UploadAttachment(
+	ctx context.Context,
+	userID string,
+	refID string,
+	filename string,
+	fileURL string,
+	fileType string,
+) (*model.Attachment, error) {
+
+	ref, err := s.refRepo.GetByID(refID)
+	if err != nil {
+		return nil, ErrRefNotFound
+	}
+
+	if ref.Status != model.AchievementStatusDraft {
+		return nil, ErrInvalidStatus
+	}
+
+	student, err := s.studentRepo.FindByUserID(userID)
+	if err != nil || student.ID != ref.StudentID {
+		return nil, ErrForbidden
+	}
+
+	att := model.Attachment{
+		FileName:   filename,
+		FileURL:    fileURL,
+		FileType:   fileType,
+		UploadedAt: time.Now(),
+	}
+
+	if err := s.achievementRepo.AddAttachment(ctx, ref.MongoAchievementID, att); err != nil {
+		return nil, err
+	}
+
+	return &att, nil
 }

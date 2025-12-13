@@ -16,6 +16,7 @@ type AchievementRepository interface {
 	SoftDelete(ctx context.Context, mongoID string) error
 	FindDeletedByStudentID(ctx context.Context, studentID string) ([]model.Achievement, error)
 	FindByIDs(ctx context.Context, ids []string) ([]model.Achievement, error)
+	AddAttachment(ctx context.Context, mongoID string, att model.Attachment) error
 }
 
 type achievementRepository struct {
@@ -143,4 +144,20 @@ func (r *achievementRepository) FindByIDs(ctx context.Context, ids []string) ([]
         out = append(out, a)
     }
     return out, nil
+}
+func (r *achievementRepository) AddAttachment(
+	ctx context.Context,
+	mongoID string,
+	att model.Attachment,
+) error {
+	objID, err := primitive.ObjectIDFromHex(mongoID)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.collection.UpdateByID(ctx, objID, bson.M{
+		"$push": bson.M{"attachments": att},
+		"$set":  bson.M{"updatedAt": time.Now()},
+	})
+	return err
 }

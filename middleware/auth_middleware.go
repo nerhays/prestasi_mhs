@@ -39,7 +39,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// menyimpan info user ke context, bisa diambil di handler lain
+		// simpan info user ke context
 		c.Set(ContextUserIDKey, claims.UserID)
 		c.Set(ContextUsernameKey, claims.Username)
 		c.Set(ContextRoleKey, claims.Role)
