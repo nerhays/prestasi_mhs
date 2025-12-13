@@ -26,6 +26,7 @@ type AchievementService struct {
 	refRepo         repository.AchievementReferenceRepository
 	userRepo        repository.UserRepository
 	lecturerRepo    repository.LecturerRepository
+	logRepo         repository.AchievementStatusLogRepository
 }
 
 func NewAchievementService(
@@ -34,6 +35,7 @@ func NewAchievementService(
 	refRepo repository.AchievementReferenceRepository,
 	userRepo repository.UserRepository,
 	lecturerRepo    repository.LecturerRepository,
+	logRepo repository.AchievementStatusLogRepository,
 ) *AchievementService {
 	return &AchievementService{
 		achievementRepo: achievementRepo,
@@ -41,6 +43,7 @@ func NewAchievementService(
 		refRepo:         refRepo,
 		userRepo:        userRepo,
 		lecturerRepo:    lecturerRepo,
+		logRepo:         logRepo,
 	}
 }
 
@@ -93,6 +96,14 @@ func (s *AchievementService) CreateAchievementForUser(
 		// Mongo sudah terbuat, tapi ref gagal
 		return createdAc, nil, err
 	}
+		// ✅ LOG: NONE → DRAFT
+	s.logStatusChange(
+		ref.ID,
+		"",
+		model.AchievementStatusDraft,
+		userID,
+		nil,
+	)
 
 	return createdAc, ref, nil
 }
@@ -127,6 +138,7 @@ func (s *AchievementService) SubmitAchievement(ctx context.Context, userID, refI
 		return nil, ErrInvalidStatus
 	}
 
+	old := ref.Status
 	now := time.Now()
 	ref.Status = model.AchievementStatusSubmitted
 	ref.SubmittedAt = &now
@@ -134,6 +146,13 @@ func (s *AchievementService) SubmitAchievement(ctx context.Context, userID, refI
 	if err := s.refRepo.Save(ref); err != nil {
 		return nil, err
 	}
+	s.logStatusChange(
+		ref.ID,
+		old,
+		ref.Status,
+		userID,
+		nil,
+	)
 
 	return ref, nil
 }
@@ -180,6 +199,7 @@ func (s *AchievementService) VerifyAchievement(ctx context.Context, verifierUser
 		return nil, ErrInvalidStatus
 	}
 
+	old := ref.Status
     now := time.Now()
     ref.Status = model.AchievementStatusVerified
     ref.VerifiedAt = &now
@@ -190,6 +210,13 @@ func (s *AchievementService) VerifyAchievement(ctx context.Context, verifierUser
         return nil, err
     }
 
+	s.logStatusChange(
+		ref.ID,
+		old,
+		ref.Status,
+		verifierUserID,
+		nil,
+	)
     return ref, nil
 }
 
@@ -234,6 +261,7 @@ func (s *AchievementService) RejectAchievement(ctx context.Context, verifierUser
 		return nil, ErrInvalidStatus
 	}
 
+	old := ref.Status
 	now := time.Now()
 	ref.Status = model.AchievementStatusRejected
 	ref.VerifiedAt = &now
@@ -244,6 +272,13 @@ func (s *AchievementService) RejectAchievement(ctx context.Context, verifierUser
 		return nil, err
 	}
 
+	s.logStatusChange(
+		ref.ID,
+		old,
+		ref.Status,
+		verifierUserID,
+		&note,
+	)
 	return ref, nil
 }
 
@@ -389,4 +424,22 @@ func (s *AchievementService) UploadAttachment(
 	}
 
 	return &att, nil
+}
+func (s *AchievementService) logStatusChange(
+	refID string,
+	oldStatus model.AchievementStatus,
+	newStatus model.AchievementStatus,
+	userID string,
+	note *string,
+) {
+	_ = s.logRepo.Create(&model.AchievementStatusLog{
+		AchievementReferenceID: refID,
+		OldStatus:              string(oldStatus),
+		NewStatus:              string(newStatus),
+		ChangedBy:              userID,
+		Note:                   note,
+	})
+}
+func (s *AchievementService) GetAchievementHistory(ctx context.Context, refID string) ([]model.AchievementStatusLog, error) {
+	return s.logRepo.FindByReferenceID(refID)
 }

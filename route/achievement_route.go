@@ -263,8 +263,20 @@ func (h *AchievementHandler) UploadAttachment(c *gin.Context) {
 		"data":   attachment,
 	})
 }
+func (h *AchievementHandler) GetHistory(c *gin.Context) {
+	refID := c.Param("id")
 
+	logs, err := h.svc.GetAchievementHistory(c.Request.Context(), refID)
+	if err != nil {
+		c.JSON(404, gin.H{"message": "history not found"})
+		return
+	}
 
+	c.JSON(200, gin.H{
+		"status": "success",
+		"data":   logs,
+	})
+}
 
 func SetupAchievementRoutes(rg *gin.RouterGroup, db *gorm.DB, mongoDB *mongo.Database) {
 	achievementRepo := repository.NewAchievementRepository(mongoDB)
@@ -272,7 +284,8 @@ func SetupAchievementRoutes(rg *gin.RouterGroup, db *gorm.DB, mongoDB *mongo.Dat
 	refRepo := repository.NewAchievementReferenceRepository(db)
 	userRepo := repository.NewUserRepository(db)
 	lecturerRepo := repository.NewLecturerRepository(db)
-	achievementSvc := service.NewAchievementService(achievementRepo, studentRepo, refRepo, userRepo, lecturerRepo)
+	logRepo := repository.NewAchievementStatusLogRepository(db)
+	achievementSvc := service.NewAchievementService(achievementRepo, studentRepo, refRepo, userRepo, lecturerRepo, logRepo)
 	handler := NewAchievementHandler(achievementSvc)
 
 	ach := rg.Group("/achievements")
@@ -285,6 +298,7 @@ func SetupAchievementRoutes(rg *gin.RouterGroup, db *gorm.DB, mongoDB *mongo.Dat
 	ach.DELETE("/:id", handler.Delete)
 	ach.GET("/deleted", handler.GetDeleted)
 	ach.POST("/:id/attachments", handler.UploadAttachment)
+	ach.GET("/:id/history", handler.GetHistory)
 
 
 
@@ -293,5 +307,5 @@ func SetupAchievementRoutes(rg *gin.RouterGroup, db *gorm.DB, mongoDB *mongo.Dat
 	dosen.Use(middleware.RequireRole("Dosen Wali", "Admin"))
 	dosen.POST("/:id/verify", handler.Verify)
 	dosen.POST("/:id/reject", handler.Reject)
-	ach.GET("/bimbingan", handler.GetBimbingan)
+	dosen.GET("/bimbingan", handler.GetBimbingan)
 }
