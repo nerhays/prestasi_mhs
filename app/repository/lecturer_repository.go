@@ -6,6 +6,7 @@ import (
 )
 
 type LecturerRepository interface {
+	FindAll() ([]model.Lecturer, error)
 	FindByID(id string) (*model.Lecturer, error)
 	FindByUserID(userID string) (*model.Lecturer, error)
 }
@@ -39,4 +40,9 @@ func (r *lecturerRepository) FindByUserID(userID string) (*model.Lecturer, error
 		return nil, err
 	}
 	return &lect, nil
+}
+func (r *lecturerRepository) FindAll() ([]model.Lecturer, error) {
+	var lecturers []model.Lecturer
+	err := r.db.Preload("User").Find(&lecturers).Error
+	return lecturers, err
 }

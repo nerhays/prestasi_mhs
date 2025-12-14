@@ -2,12 +2,14 @@ package route
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
 	"github.com/nerhays/prestasi_uas/app/repository"
 	"github.com/nerhays/prestasi_uas/app/service"
+	"github.com/nerhays/prestasi_uas/middleware"
 )
 
 type AuthHandler struct {
@@ -60,11 +62,70 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		},
 	})
 }
+func (h *AuthHandler) Refresh(c *gin.Context) {
+	authHeader := c.GetHeader("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		c.JSON(401, gin.H{"message": "missing token"})
+		return
+	}
+
+	oldToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+	newToken, err := h.authService.RefreshToken(oldToken)
+	if err != nil {
+		c.JSON(401, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"status": "success",
+		"data": gin.H{
+			"token": newToken,
+		},
+	})
+}
+func (h *AuthHandler) Logout(c *gin.Context) {
+	// JWT stateless → cukup respon sukses
+	c.JSON(200, gin.H{
+		"status":  "success",
+		"message": "logged out successfully",
+	})
+}
+func (h *AuthHandler) Profile(c *gin.Context) {
+	userID := c.GetString(middleware.ContextUserIDKey)
+
+	user, err := h.authService.GetProfile(userID)
+	if err != nil {
+		c.JSON(404, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"status": "success",
+		"data": gin.H{
+			"id":       user.ID,
+			"username": user.Username,
+			"email":    user.Email,
+			"fullName": user.FullName,
+			"role":     user.Role.Name,
+		},
+	})
+}
+
 
 func SetupAuthRoutes(rg *gin.RouterGroup, db *gorm.DB) {
 	userRepo := repository.NewUserRepository(db)
 	authSvc := service.NewAuthService(userRepo)
 	handler := NewAuthHandler(authSvc)
 
-	rg.POST("/auth/login", handler.Login)
+	auth := rg.Group("/auth")
+
+	// public
+	auth.POST("/login", handler.Login)
+	auth.POST("/refresh", handler.Refresh)
+
+	// protected
+	auth.Use(middleware.AuthMiddleware())
+	auth.POST("/logout", handler.Logout)
+	auth.GET("/profile", handler.Profile)
 }

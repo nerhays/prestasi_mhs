@@ -52,4 +52,12 @@ func (s *StudentService) SetAdvisor(
 	// 4. update advisor
 	return s.studentRepo.UpdateAdvisor(student.ID, lect.ID)
 }
+func (s *StudentService) GetAllStudents() ([]model.Student, error) {
+	return s.studentRepo.FindAll()
+}
+
+func (s *StudentService) GetStudentByID(id string) (*model.Student, error) {
+	return s.studentRepo.FindByID(id)
+}
+
 

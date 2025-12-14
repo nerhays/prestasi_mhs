@@ -15,6 +15,7 @@ type AchievementReferenceRepository interface {
     FindByStudentIDs(studentIDs []string, status *model.AchievementStatus, limit, offset int) ([]model.AchievementReference, error)
 	FindAll(offset, limit int, status *string) ([]model.AchievementReference, int64, error)
 	CountByStatus() (map[string]int64, error)
+	FindByStudentID(studentID string) ([]model.AchievementReference, error)
 }
 
 type achievementReferenceRepository struct {
@@ -118,3 +119,20 @@ func (r *achievementReferenceRepository) CountByStatus() (map[string]int64, erro
 	return result, nil
 }
 
+func (r *achievementReferenceRepository) FindByStudentID(
+	studentID string,
+) ([]model.AchievementReference, error) {
+
+	var refs []model.AchievementReference
+
+	err := r.db.
+		Where("student_id = ?", studentID).
+		Find(&refs).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return refs, nil
+}

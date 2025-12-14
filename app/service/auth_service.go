@@ -57,3 +57,28 @@ func (s *AuthService) Login(input LoginInput) (*LoginOutput, error) {
 		Permissions: perms,
 	}, nil
 }
+func (s *AuthService) RefreshToken(oldToken string) (string, error) {
+	claims, err := utils.ParseToken(oldToken)
+	if err != nil {
+		return "", errors.New("invalid or expired token")
+	}
+
+	user, err := s.userRepo.FindByID(claims.UserID)
+	if err != nil || !user.IsActive {
+		return "", errors.New("user not found or inactive")
+	}
+
+	perms, err := s.userRepo.GetPermissionsByUserID(user.ID)
+	if err != nil {
+		return "", err
+	}
+
+	return utils.GenerateToken(user, perms)
+}
+func (s *AuthService) GetProfile(userID string) (*model.User, error) {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+	return user, nil
+}

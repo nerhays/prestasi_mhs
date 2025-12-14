@@ -10,6 +10,11 @@ type UserRepository interface {
 	FindByUsernameOrEmail(usernameOrEmail string) (*model.User, error)
 	GetPermissionsByUserID(userID string) ([]model.Permission, error)
 	FindByID(id string) (*model.User, error)
+	FindAll() ([]model.User, error)
+	Create(user *model.User) error
+	Update(user *model.User) error
+	Delete(id string) error
+	UpdateRole(userID, roleID string) error
 }
 
 type userRepository struct {
@@ -57,4 +62,27 @@ func (r *userRepository) FindByID(id string) (*model.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+func (r *userRepository) FindAll() ([]model.User, error) {
+	var users []model.User
+	err := r.db.Preload("Role").Find(&users).Error
+	return users, err
+}
+
+func (r *userRepository) Create(user *model.User) error {
+	return r.db.Create(user).Error
+}
+
+func (r *userRepository) Update(user *model.User) error {
+	return r.db.Save(user).Error
+}
+
+func (r *userRepository) Delete(id string) error {
+	return r.db.Delete(&model.User{}, "id = ?", id).Error
+}
+
+func (r *userRepository) UpdateRole(userID, roleID string) error {
+	return r.db.Model(&model.User{}).
+		Where("id = ?", userID).
+		Update("role_id", roleID).Error
 }

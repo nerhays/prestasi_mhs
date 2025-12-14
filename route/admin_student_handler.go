@@ -102,4 +102,96 @@ func (h *AdminAchievementHandler) GetStatistics(c *gin.Context) {
 	})
 }
 
+type AdminStudentQueryHandler struct {
+	studentSvc *service.StudentService
+	achievementSvc *service.AchievementService
+}
 
+func NewAdminStudentQueryHandler(
+	studentSvc *service.StudentService,
+	achievementsvc *service.AchievementService,
+) *AdminStudentQueryHandler {
+	return &AdminStudentQueryHandler{studentSvc, achievementsvc}
+}
+
+func (h *AdminStudentQueryHandler) GetAll(c *gin.Context) {
+	data, err := h.studentSvc.GetAllStudents()
+	if err != nil {
+		c.JSON(500, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"status": "success", "data": data})
+}
+
+func (h *AdminStudentQueryHandler) GetByID(c *gin.Context) {
+	id := c.Param("id")
+	data, err := h.studentSvc.GetStudentByID(id)
+	if err != nil {
+		c.JSON(404, gin.H{"message": "student not found"})
+		return
+	}
+	c.JSON(200, gin.H{"status": "success", "data": data})
+}
+
+func (h *AdminStudentQueryHandler) GetAchievements(c *gin.Context) {
+	studentID := c.Param("id")
+
+	data, err := h.achievementSvc.GetAchievementsByStudentID(
+		c.Request.Context(),
+		studentID,
+	)
+	if err != nil {
+		c.JSON(500, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"status": "success", "data": data})
+}
+
+type AdminLecturerHandler struct {
+	lecturerSvc *service.LecturerService
+}
+
+func NewAdminLecturerHandler(
+	lecturerSvc *service.LecturerService,
+) *AdminLecturerHandler {
+	return &AdminLecturerHandler{lecturerSvc}
+}
+
+func (h *AdminLecturerHandler) GetAll(c *gin.Context) {
+	data, err := h.lecturerSvc.GetAllLecturers()
+	if err != nil {
+		c.JSON(500, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"status": "success", "data": data})
+}
+
+func (h *AdminLecturerHandler) GetAdvisees(c *gin.Context) {
+	id := c.Param("id")
+	data, err := h.lecturerSvc.GetAdvisees(id)
+	if err != nil {
+		c.JSON(500, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"status": "success", "data": data})
+}
+
+
+func (h *AdminAchievementHandler) GetStudentReport(c *gin.Context) {
+	studentID := c.Param("id")
+
+	data, err := h.achievementSvc.GetStudentReport(
+		c.Request.Context(),
+		studentID,
+	)
+	if err != nil {
+		c.JSON(404, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"status": "success",
+		"data":   data,
+	})
+}

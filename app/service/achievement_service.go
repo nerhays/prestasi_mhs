@@ -498,3 +498,51 @@ func (s *AchievementService) GetStatistics(ctx context.Context) (*model.Achievem
 		ByStatus: byStatus,
 	}, nil
 }
+func (s *AchievementService) GetAchievementsByStudentID(
+	ctx context.Context,
+	studentID string,
+) ([]model.Achievement, error) {
+	return s.achievementRepo.FindByStudentID(ctx, studentID)
+}
+func (s *AchievementService) GetStudentReport(
+	ctx context.Context,
+	studentID string,
+) (map[string]interface{}, error) {
+
+	// ambil student
+	student, err := s.studentRepo.FindByID(studentID)
+	if err != nil {
+		return nil, err
+	}
+
+	// ambil semua achievement mongo
+	achievements, err := s.achievementRepo.FindByStudentID(ctx, studentID)
+	if err != nil {
+		return nil, err
+	}
+
+	// ambil references (postgres)
+	refs, err := s.refRepo.FindByStudentID(studentID)
+	if err != nil {
+		return nil, err
+	}
+
+	// summary status
+	summary := map[string]int{
+		"total":     len(refs),
+		"draft":     0,
+		"submitted": 0,
+		"verified":  0,
+		"rejected":  0,
+	}
+
+	for _, r := range refs {
+		summary[string(r.Status)]++
+	}
+
+	return map[string]interface{}{
+		"student": student,
+		"summary": summary,
+		"achievements": achievements,
+	}, nil
+}

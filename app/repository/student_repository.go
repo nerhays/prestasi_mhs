@@ -6,10 +6,12 @@ import (
 )
 
 type StudentRepository interface {
+	FindAll() ([]model.Student, error)
 	FindByUserID(userID string) (*model.Student, error)
 	FindByID(id string) (*model.Student, error)
 	FindByAdvisorLecturerID(lecturerID string) ([]model.Student, error)
 	UpdateAdvisor(studentID, lecturerID string) error
+	FindByAdvisorID(advisorID string) ([]model.Student, error)
 }
 
 type studentRepository struct {
@@ -53,5 +55,19 @@ func (r *studentRepository) UpdateAdvisor(studentID, lecturerID string) error {
 		Where("id = ?", studentID).
 		Update("advisor_id", lecturerID).
 		Error
+}
+func (r *studentRepository) FindAll() ([]model.Student, error) {
+	var students []model.Student
+	err := r.db.Preload("User").Find(&students).Error
+	return students, err
+}
+
+func (r *studentRepository) FindByAdvisorID(advisorID string) ([]model.Student, error) {
+	var students []model.Student
+	err := r.db.
+		Preload("User").
+		Where("advisor_id = ?", advisorID).
+		Find(&students).Error
+	return students, err
 }
 
