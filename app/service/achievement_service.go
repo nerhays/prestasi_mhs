@@ -443,3 +443,58 @@ func (s *AchievementService) logStatusChange(
 func (s *AchievementService) GetAchievementHistory(ctx context.Context, refID string) ([]model.AchievementStatusLog, error) {
 	return s.logRepo.FindByReferenceID(refID)
 }
+func (s *AchievementService) GetAllAchievements(
+	ctx context.Context,
+	page, limit int,
+	status *string,
+) ([]map[string]interface{}, int64, error) {
+
+	offset := (page - 1) * limit
+
+	refs, total, err := s.refRepo.FindAll(offset, limit, status)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var result []map[string]interface{}
+
+	for _, ref := range refs {
+		ac, err := s.achievementRepo.FindByID(ctx, ref.MongoAchievementID)
+		if err != nil {
+			continue
+		}
+
+		result = append(result, map[string]interface{}{
+			"reference_id": ref.ID,
+			"status":       ref.Status,
+			"student":      ref.Student,
+			"achievement":  ac,
+			"submitted_at": ref.SubmittedAt,
+			"verified_at":  ref.VerifiedAt,
+		})
+	}
+
+	return result, total, nil
+}
+func (s *AchievementService) GetStatistics(ctx context.Context) (*model.AchievementStatistics, error) {
+	byType, err := s.achievementRepo.CountByType(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	byStatus, err := s.refRepo.CountByStatus()
+	if err != nil {
+		return nil, err
+	}
+
+	var total int64
+	for _, v := range byType {
+		total += v
+	}
+
+	return &model.AchievementStatistics{
+		Total:    total,
+		ByType:  byType,
+		ByStatus: byStatus,
+	}, nil
+}

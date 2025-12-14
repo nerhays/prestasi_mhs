@@ -21,6 +21,8 @@ func NewLecturerRepository(db *gorm.DB) LecturerRepository {
 func (r *lecturerRepository) FindByID(id string) (*model.Lecturer, error) {
 	var lect model.Lecturer
 	if err := r.db.
+		Preload("User").
+		Preload("User.Role").
 		Where("id = ?", id).
 		First(&lect).Error; err != nil {
 		return nil, err
@@ -28,9 +30,13 @@ func (r *lecturerRepository) FindByID(id string) (*model.Lecturer, error) {
 	return &lect, nil
 }
 func (r *lecturerRepository) FindByUserID(userID string) (*model.Lecturer, error) {
-    var lect model.Lecturer
-    if err := r.db.Where("user_id = ?", userID).First(&lect).Error; err != nil {
-        return nil, err
-    }
-    return &lect, nil
+	var lect model.Lecturer
+	if err := r.db.
+		Preload("User").
+		Preload("User.Role").
+		Where("user_id = ?", userID).
+		First(&lect).Error; err != nil {
+		return nil, err
+	}
+	return &lect, nil
 }

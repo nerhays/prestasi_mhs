@@ -13,7 +13,8 @@ type AchievementReferenceRepository interface {
 	Save(ref *model.AchievementReference) error
 	CountByStudentIDs(studentIDs []string, status *model.AchievementStatus) (int64, error)
     FindByStudentIDs(studentIDs []string, status *model.AchievementStatus, limit, offset int) ([]model.AchievementReference, error)
-	
+	FindAll(offset, limit int, status *string) ([]model.AchievementReference, int64, error)
+	CountByStatus() (map[string]int64, error)
 }
 
 type achievementReferenceRepository struct {
@@ -72,5 +73,48 @@ func (r *achievementReferenceRepository) FindByStudentIDs(studentIDs []string, s
         return nil, err
     }
     return refs, nil
+}
+func (r *achievementReferenceRepository) FindAll(offset, limit int, status *string) ([]model.AchievementReference, int64, error) {
+	var refs []model.AchievementReference
+	var total int64
+
+	q := r.db.Model(&model.AchievementReference{}).
+		Preload("Student")
+
+	if status != nil {
+		q = q.Where("status = ?", *status)
+	}
+
+	q.Count(&total)
+
+	err := q.
+		Order("created_at DESC").
+		Offset(offset).
+		Limit(limit).
+		Find(&refs).Error
+
+	return refs, total, err
+}
+func (r *achievementReferenceRepository) CountByStatus() (map[string]int64, error) {
+	type row struct {
+		Status string
+		Total  int64
+	}
+
+	var rows []row
+	err := r.db.
+		Model(&model.AchievementReference{}).
+		Select("status, COUNT(*) as total").
+		Group("status").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]int64)
+	for _, r := range rows {
+		result[r.Status] = r.Total
+	}
+	return result, nil
 }
 

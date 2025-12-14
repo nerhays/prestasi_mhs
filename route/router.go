@@ -33,6 +33,7 @@ func SetupRouter(db *gorm.DB, mongoDB *mongo.Database) *gin.Engine {
 	SetupRoleRoutes(protected, db)
 	SetupStudentRoutes(protected, db)
 	SetupAchievementRoutes(protected, db, mongoDB)
+	SetupAdminRoutes(api, db, mongoDB)
 
 	// SetupAchievementRoutes(protected, db, mongo)
 

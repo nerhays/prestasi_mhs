@@ -80,3 +80,30 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 		c.Next()
 	}
 }
+func RoleOnly(allowedRoles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleVal, exists := c.Get(ContextRoleKey)
+		if !exists {
+			c.JSON(http.StatusForbidden, gin.H{"message": "role not found"})
+			c.Abort()
+			return
+		}
+
+		role, ok := roleVal.(string)
+		if !ok {
+			c.JSON(http.StatusForbidden, gin.H{"message": "invalid role"})
+			c.Abort()
+			return
+		}
+
+		for _, r := range allowedRoles {
+			if role == r {
+				c.Next()
+				return
+			}
+		}
+
+		c.JSON(http.StatusForbidden, gin.H{"message": "forbidden"})
+		c.Abort()
+	}
+}

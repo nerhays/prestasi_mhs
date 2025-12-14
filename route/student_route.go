@@ -35,7 +35,13 @@ func (h *StudentHandler) GetMyProfile(c *gin.Context) {
 
 func SetupStudentRoutes(rg *gin.RouterGroup, db *gorm.DB) {
 	studentRepo := repository.NewStudentRepository(db)
-	studentSvc := service.NewStudentService(studentRepo)
+	lecturerRepo := repository.NewLecturerRepository(db)
+
+	studentSvc := service.NewStudentService(
+		studentRepo,
+		lecturerRepo,
+	)
+
 	handler := NewStudentHandler(studentSvc)
 
 	authRequired := rg.Group("/students", middleware.AuthMiddleware())

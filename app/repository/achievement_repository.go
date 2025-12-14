@@ -17,6 +17,8 @@ type AchievementRepository interface {
 	FindDeletedByStudentID(ctx context.Context, studentID string) ([]model.Achievement, error)
 	FindByIDs(ctx context.Context, ids []string) ([]model.Achievement, error)
 	AddAttachment(ctx context.Context, mongoID string, att model.Attachment) error
+	FindByID(ctx context.Context, id string) (*model.Achievement, error)
+	CountByType(ctx context.Context) (map[string]int64, error)
 }
 
 type achievementRepository struct {
@@ -160,4 +162,51 @@ func (r *achievementRepository) AddAttachment(
 		"$set":  bson.M{"updatedAt": time.Now()},
 	})
 	return err
+}
+func (r *achievementRepository) FindByID(
+	ctx context.Context,
+	id string,
+) (*model.Achievement, error) {
+
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	var ac model.Achievement
+	err = r.collection.FindOne(
+		ctx,
+		bson.M{"_id": objID},
+	).Decode(&ac)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &ac, nil
+}
+func (r *achievementRepository) CountByType(ctx context.Context) (map[string]int64, error) {
+	cursor, err := r.collection.Aggregate(ctx, []bson.M{
+		{"$group": bson.M{
+			"_id":   "$achievementType",
+			"count": bson.M{"$sum": 1},
+		}},
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	result := make(map[string]int64)
+	for cursor.Next(ctx) {
+		var row struct {
+			ID    string `bson:"_id"`
+			Count int64  `bson:"count"`
+		}
+		if err := cursor.Decode(&row); err != nil {
+			return nil, err
+		}
+		result[row.ID] = row.Count
+	}
+	return result, nil
 }

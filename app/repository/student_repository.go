@@ -9,6 +9,7 @@ type StudentRepository interface {
 	FindByUserID(userID string) (*model.Student, error)
 	FindByID(id string) (*model.Student, error)
 	FindByAdvisorLecturerID(lecturerID string) ([]model.Student, error)
+	UpdateAdvisor(studentID, lecturerID string) error
 }
 
 type studentRepository struct {
@@ -46,3 +47,11 @@ func (r *studentRepository) FindByAdvisorLecturerID(lecturerID string) ([]model.
     }
     return students, nil
 }
+func (r *studentRepository) UpdateAdvisor(studentID, lecturerID string) error {
+	return r.db.
+		Model(&model.Student{}).
+		Where("id = ?", studentID).
+		Update("advisor_id", lecturerID).
+		Error
+}
+
