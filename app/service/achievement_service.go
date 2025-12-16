@@ -546,3 +546,182 @@ func (s *AchievementService) GetStudentReport(
 		"achievements": achievements,
 	}, nil
 }
+func (s *AchievementService) GetAchievementDetail(
+	ctx context.Context,
+	refID, userID, role string,
+) (map[string]any, error) {
+
+	// 1. ambil reference
+	ref, err := s.refRepo.GetByID(refID)
+	if err != nil {
+		return nil, ErrRefNotFound
+	}
+
+	// 2. RBAC
+	switch role {
+	case "Mahasiswa":
+		student, err := s.studentRepo.FindByUserID(userID)
+		if err != nil || ref.StudentID != student.ID {
+			return nil, ErrNotOwner
+		}
+
+	case "Dosen Wali":
+		lect, err := s.lecturerRepo.FindByUserID(userID)
+		if err != nil {
+			return nil, ErrNotAdvisor
+		}
+
+		student, err := s.studentRepo.FindByID(ref.StudentID)
+		if err != nil {
+			return nil, ErrStudentProfileNotFound
+		}
+
+		if student.AdvisorID != lect.ID {
+			return nil, ErrNotAdvisor
+		}
+
+
+	case "Admin":
+		// bebas
+
+	default:
+		return nil, ErrForbidden
+	}
+
+	// 3. ambil detail Mongo
+	ach, err := s.achievementRepo.FindByID(ctx, ref.MongoAchievementID)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]any{
+		"reference": ref,
+		"achievement": ach,
+	}, nil
+}
+func (s *AchievementService) UpdateAchievementDraft(
+	ctx context.Context,
+	refID, userID string,
+	payload *model.Achievement,
+) (*model.Achievement, error) {
+
+	ref, err := s.refRepo.GetByID(refID)
+	if err != nil {
+		return nil, ErrRefNotFound
+	}
+
+	if ref.Status != model.AchievementStatusDraft {
+		return nil, ErrInvalidStatus
+	}
+
+	student, err := s.studentRepo.FindByUserID(userID)
+	if err != nil || ref.StudentID != student.ID {
+		return nil, ErrNotOwner
+	}
+
+	// ✅ FIX Mongo validation
+	if v, ok := payload.Details["eventDate"]; ok {
+		if sDate, ok := v.(string); ok {
+			t, err := time.Parse("2006-01-02", sDate)
+			if err != nil {
+				return nil, errors.New("invalid eventDate format (YYYY-MM-DD)")
+			}
+			payload.Details["eventDate"] = t
+		}
+	}
+
+	payload.UpdatedAt = time.Now()
+
+	return s.achievementRepo.Update(ctx, ref.MongoAchievementID, payload)
+}
+
+func (s *AchievementService) GetAchievementsByRole(
+	ctx context.Context,
+	userID, role string,
+) ([]map[string]interface{}, error) {
+
+	switch role {
+
+	case "Mahasiswa":
+		student, err := s.studentRepo.FindByUserID(userID)
+		if err != nil {
+			return nil, ErrStudentProfileNotFound
+		}
+
+		refs, err := s.refRepo.FindByStudentID(student.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		return s.combineRefsWithMongo(ctx, refs)
+
+	case "Dosen Wali":
+		lect, err := s.lecturerRepo.FindByUserID(userID)
+		if err != nil {
+			return nil, ErrNotAdvisor
+		}
+
+		students, err := s.studentRepo.FindByAdvisorLecturerID(lect.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(students) == 0 {
+			return []map[string]interface{}{}, nil
+		}
+
+		var studentIDs []string
+		for _, s := range students {
+			studentIDs = append(studentIDs, s.ID)
+		}
+
+		refs, err := s.refRepo.FindByStudentIDs(studentIDs, nil, 1000, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		return s.combineRefsWithMongo(ctx, refs)
+
+	case "Admin":
+		refs, _, err := s.refRepo.FindAll(0, 1000, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		return s.combineRefsWithMongo(ctx, refs)
+
+	default:
+		return nil, ErrForbidden
+	}
+}
+func (s *AchievementService) combineRefsWithMongo(
+	ctx context.Context,
+	refs []model.AchievementReference,
+) ([]map[string]interface{}, error) {
+
+	mongoIDs := make([]string, 0, len(refs))
+	for _, r := range refs {
+		mongoIDs = append(mongoIDs, r.MongoAchievementID)
+	}
+
+	achs, err := s.achievementRepo.FindByIDs(ctx, mongoIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	achMap := map[string]model.Achievement{}
+	for _, a := range achs {
+		achMap[a.ID.Hex()] = a
+	}
+
+	var res []map[string]interface{}
+	for _, r := range refs {
+		res = append(res, map[string]interface{}{
+			"reference":   r,
+			"achievement": achMap[r.MongoAchievementID],
+		})
+	}
+
+	return res, nil
+}
+

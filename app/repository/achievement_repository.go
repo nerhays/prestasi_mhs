@@ -19,6 +19,9 @@ type AchievementRepository interface {
 	AddAttachment(ctx context.Context, mongoID string, att model.Attachment) error
 	FindByID(ctx context.Context, id string) (*model.Achievement, error)
 	CountByType(ctx context.Context) (map[string]int64, error)
+	
+	FindAll(ctx context.Context) ([]model.Achievement, error)
+	Update(ctx context.Context, id string, payload *model.Achievement) (*model.Achievement, error)
 }
 
 type achievementRepository struct {
@@ -210,3 +213,45 @@ func (r *achievementRepository) CountByType(ctx context.Context) (map[string]int
 	}
 	return result, nil
 }
+func (r *achievementRepository) Update(
+	ctx context.Context,
+	id string,
+	payload *model.Achievement,
+) (*model.Achievement, error) {
+
+	objID, _ := primitive.ObjectIDFromHex(id)
+
+	_, err := r.collection.UpdateByID(
+		ctx,
+		objID,
+		bson.M{"$set": payload},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.FindByID(ctx, id)
+}
+func (r *achievementRepository) FindAll(
+	ctx context.Context,
+) ([]model.Achievement, error) {
+
+	cur, err := r.collection.Find(ctx, bson.M{
+		"isDeleted": bson.M{"$ne": true},
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	var res []model.Achievement
+	for cur.Next(ctx) {
+		var a model.Achievement
+		if err := cur.Decode(&a); err != nil {
+			return nil, err
+		}
+		res = append(res, a)
+	}
+	return res, nil
+}
+

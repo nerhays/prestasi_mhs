@@ -277,6 +277,68 @@ func (h *AchievementHandler) GetHistory(c *gin.Context) {
 		"data":   logs,
 	})
 }
+func (h *AchievementHandler) GetDetail(c *gin.Context) {
+	refID := c.Param("id")
+
+	userID := c.GetString(middleware.ContextUserIDKey)
+	role := c.GetString(middleware.ContextRoleKey)
+
+	data, err := h.svc.GetAchievementDetail(
+		c.Request.Context(),
+		refID,
+		userID,
+		role,
+	)
+	if err != nil {
+		c.JSON(403, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"status": "success",
+		"data":   data,
+	})
+}
+func (h *AchievementHandler) Update(c *gin.Context) {
+	refID := c.Param("id")
+	userID := c.GetString(middleware.ContextUserIDKey)
+
+	var req model.Achievement
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"message": "invalid input"})
+		return
+	}
+
+	data, err := h.svc.UpdateAchievementDraft(
+		c.Request.Context(),
+		refID,
+		userID,
+		&req,
+	)
+	if err != nil {
+		c.JSON(400, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"status": "success", "data": data})
+}
+func (h *AchievementHandler) GetListByRole(c *gin.Context) {
+	userID := c.GetString(middleware.ContextUserIDKey)
+	role := c.GetString(middleware.ContextRoleKey)
+
+	data, err := h.svc.GetAchievementsByRole(
+		c.Request.Context(),
+		userID,
+		role,
+	)
+	if err != nil {
+		c.JSON(500, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"status": "success", "data": data})
+}
+
 
 func SetupAchievementRoutes(rg *gin.RouterGroup, db *gorm.DB, mongoDB *mongo.Database) {
 	achievementRepo := repository.NewAchievementRepository(mongoDB)
@@ -299,6 +361,10 @@ func SetupAchievementRoutes(rg *gin.RouterGroup, db *gorm.DB, mongoDB *mongo.Dat
 	ach.GET("/deleted", handler.GetDeleted)
 	ach.POST("/:id/attachments", handler.UploadAttachment)
 	ach.GET("/:id/history", handler.GetHistory)
+	ach.GET("/:id", handler.GetDetail)
+	ach.PUT("/:id", handler.Update)
+	ach.GET("/", handler.GetListByRole)
+
 
 
 
