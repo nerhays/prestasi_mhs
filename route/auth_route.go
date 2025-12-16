@@ -25,6 +25,17 @@ type loginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+// Login godoc
+// @Summary Login user
+// @Description Login menggunakan username dan password
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body loginRequest true "Login payload"
+// @Success 200 {object} map[string]interface{} "Login success"
+// @Failure 400 {object} map[string]string "Invalid input"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req loginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -62,6 +73,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		},
 	})
 }
+
+// Refresh godoc
+// @Summary Refresh JWT token
+// @Description Generate token baru dari token lama
+// @Tags Auth
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Token refreshed"
+// @Failure 401 {object} map[string]string "Invalid or expired token"
+// @Router /auth/refresh [post]
 func (h *AuthHandler) Refresh(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 	if !strings.HasPrefix(authHeader, "Bearer ") {
@@ -84,6 +105,15 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		},
 	})
 }
+
+// Logout godoc
+// @Summary Logout user
+// @Description Logout user (JWT stateless, client-side logout)
+// @Tags Auth
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} map[string]string "Logout success"
+// @Router /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	// JWT stateless → cukup respon sukses
 	c.JSON(200, gin.H{
@@ -91,6 +121,16 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		"message": "logged out successfully",
 	})
 }
+
+// Profile godoc
+// @Summary Get user profile
+// @Description Get profile user yang sedang login
+// @Tags Auth
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} map[string]interface{} "User profile"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /auth/profile [get]
 func (h *AuthHandler) Profile(c *gin.Context) {
 	userID := c.GetString(middleware.ContextUserIDKey)
 

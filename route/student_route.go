@@ -18,6 +18,16 @@ func NewStudentHandler(studentService *service.StudentService) *StudentHandler {
 	return &StudentHandler{studentService: studentService}
 }
 
+// GetMyStudentProfile godoc
+// @Summary Get my student profile
+// @Description Get logged-in student's profile
+// @Tags Students
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Student profile"
+// @Failure 404 {object} map[string]string "Student not found"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /students/me [get]
 func (h *StudentHandler) GetMyProfile(c *gin.Context) {
 	userID := c.GetString("userID") // dari JWT middleware
 

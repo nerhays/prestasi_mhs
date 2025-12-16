@@ -1,0 +1,1243 @@
+basePath: /api/v1
+definitions:
+  model.Achievement:
+    properties:
+      achievementType:
+        type: string
+      attachments:
+        items: {}
+        type: array
+      createdAt:
+        type: string
+      description:
+        type: string
+      details:
+        additionalProperties: {}
+        type: object
+      id:
+        type: string
+      points:
+        type: number
+      studentId:
+        type: string
+      title:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  model.AchievementReference:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      mongo_achievement_id:
+        type: string
+      rejection_note:
+        type: string
+      status:
+        $ref: '#/definitions/model.AchievementStatus'
+      student:
+        $ref: '#/definitions/model.Student'
+      student_id:
+        type: string
+      submitted_at:
+        type: string
+      updated_at:
+        type: string
+      verified_at:
+        type: string
+      verified_by:
+        type: string
+    type: object
+  model.AchievementStatus:
+    enum:
+    - draft
+    - submitted
+    - verified
+    - rejected
+    - deleted
+    type: string
+    x-enum-varnames:
+    - AchievementStatusDraft
+    - AchievementStatusSubmitted
+    - AchievementStatusVerified
+    - AchievementStatusRejected
+    - AchievementStatusDeleted
+  model.AchievementStatusLog:
+    properties:
+      achievementReferenceID:
+        type: string
+      changedBy:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      newStatus:
+        type: string
+      note:
+        type: string
+      oldStatus:
+        type: string
+    type: object
+  model.Attachment:
+    properties:
+      fileName:
+        type: string
+      fileType:
+        type: string
+      fileUrl:
+        type: string
+      uploadedAt:
+        type: string
+    type: object
+  model.Role:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  model.Student:
+    properties:
+      academic_year:
+        type: string
+      advisor_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      program_study:
+        type: string
+      student_id:
+        type: string
+      user:
+        $ref: '#/definitions/model.User'
+      user_id:
+        type: string
+    type: object
+  model.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      role:
+        $ref: '#/definitions/model.Role'
+      role_id:
+        type: string
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  route.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      full_name:
+        type: string
+      password:
+        type: string
+      role_id:
+        type: string
+      username:
+        type: string
+    type: object
+  route.SetAdvisorRequest:
+    properties:
+      advisor_id:
+        type: string
+    required:
+    - advisor_id
+    type: object
+  route.UpdateRoleRequest:
+    properties:
+      role_id:
+        type: string
+    type: object
+  route.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      full_name:
+        type: string
+      username:
+        type: string
+    type: object
+  route.loginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  route.rejectRequest:
+    properties:
+      note:
+        type: string
+    required:
+    - note
+    type: object
+host: localhost:3000
+info:
+  contact:
+    email: support@prestasi.ac.id
+    name: API Support
+  description: Sistem Manajemen Prestasi Mahasiswa
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Prestasi Mahasiswa API
+  version: "1.0"
+paths:
+  /achievements:
+    get:
+      description: Mengambil prestasi sesuai role user (Mahasiswa, Dosen Wali, Admin)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Achievement'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get achievements by role
+      tags:
+      - Achievements
+    post:
+      consumes:
+      - application/json
+      description: Mahasiswa membuat prestasi baru dengan status draft
+      parameters:
+      - description: Achievement payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.Achievement'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create achievement (draft)
+      tags:
+      - Achievements
+  /achievements/{id}:
+    delete:
+      description: Mahasiswa menghapus prestasi berstatus draft
+      parameters:
+      - description: Achievement Reference ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete draft achievement
+      tags:
+      - Achievements
+    get:
+      description: 'Detail prestasi (RBAC: Mahasiswa, Dosen Wali, Admin)'
+      parameters:
+      - description: Achievement Reference ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get achievement detail
+      tags:
+      - Achievements
+    put:
+      consumes:
+      - application/json
+      description: Mahasiswa mengubah prestasi berstatus draft
+      parameters:
+      - description: Achievement Reference ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.Achievement'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Achievement'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update draft achievement
+      tags:
+      - Achievements
+  /achievements/{id}/attachments:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Mahasiswa upload file bukti prestasi
+      parameters:
+      - description: Achievement Reference ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Attachment file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Attachment'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Upload achievement attachment
+      tags:
+      - Achievements
+  /achievements/{id}/history:
+    get:
+      description: Melihat riwayat perubahan status prestasi
+      parameters:
+      - description: Achievement Reference ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.AchievementStatusLog'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get achievement history
+      tags:
+      - Achievements
+  /achievements/{id}/reject:
+    post:
+      consumes:
+      - application/json
+      description: Dosen wali menolak prestasi dengan catatan
+      parameters:
+      - description: Achievement Reference ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rejection note
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/route.rejectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.AchievementReference'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Reject achievement
+      tags:
+      - Achievements
+  /achievements/{id}/submit:
+    post:
+      description: Mahasiswa submit prestasi draft untuk diverifikasi dosen wali
+      parameters:
+      - description: Achievement Reference ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.AchievementReference'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Submit achievement for verification
+      tags:
+      - Achievements
+  /achievements/{id}/verify:
+    post:
+      description: Dosen wali atau admin memverifikasi prestasi mahasiswa
+      parameters:
+      - description: Achievement Reference ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.AchievementReference'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Verify achievement
+      tags:
+      - Achievements
+  /achievements/bimbingan:
+    get:
+      description: Dosen wali melihat prestasi mahasiswa bimbingannya
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: per_page
+        type: integer
+      - description: Achievement status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get achievements under supervision
+      tags:
+      - Achievements
+  /achievements/deleted:
+    get:
+      description: Mahasiswa melihat prestasi yang dihapus
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Achievement'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get deleted achievements
+      tags:
+      - Achievements
+  /achievements/me:
+    get:
+      description: Mahasiswa melihat semua prestasi miliknya
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Achievement'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get my achievements
+      tags:
+      - Achievements
+  /admin/achievements:
+    get:
+      description: Admin can view all achievements with pagination and filter
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Achievement status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of achievements
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all achievements
+      tags:
+      - Admin - Achievements
+  /admin/lecturers:
+    get:
+      description: Retrieve list of all lecturers
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of lecturers
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all lecturers
+      tags:
+      - Admin - Lecturers
+  /admin/lecturers/{id}/advisees:
+    get:
+      description: Get students supervised by a lecturer
+      parameters:
+      - description: Lecturer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of advisees
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Lecturer not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get lecturer advisees
+      tags:
+      - Admin - Lecturers
+  /admin/reports/statistics:
+    get:
+      description: Get statistics of achievements by type and status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Statistics data
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get achievement statistics
+      tags:
+      - Admin - Reports
+  /admin/reports/student/{id}:
+    get:
+      description: Get achievement summary report for a student
+      parameters:
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Student report
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Student not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get student achievement report
+      tags:
+      - Admin - Reports
+  /admin/students:
+    get:
+      description: Admin can view all students
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of students
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all students
+      tags:
+      - Admin - Students
+  /admin/students/{id}:
+    get:
+      description: Get detail student by ID
+      parameters:
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Student detail
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Student not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get student by ID
+      tags:
+      - Admin - Students
+  /admin/students/{id}/achievements:
+    get:
+      description: Get all achievements for a student
+      parameters:
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Student achievements
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Student not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get student achievements
+      tags:
+      - Admin - Students
+  /admin/students/{id}/advisor:
+    put:
+      consumes:
+      - application/json
+      description: Assign dosen wali to a student (Admin only)
+      parameters:
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Advisor payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/route.SetAdvisorRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Advisor assigned
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Assign advisor to student
+      tags:
+      - Admin - Students
+  /admin/users:
+    get:
+      description: Admin can retrieve all users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of users
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all users
+      tags:
+      - Admin - Users
+    post:
+      consumes:
+      - application/json
+      description: Admin creates a new user
+      parameters:
+      - description: Create user payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/route.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create new user
+      tags:
+      - Admin - Users
+  /admin/users/{id}:
+    delete:
+      description: Admin deletes a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Delete failed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete user
+      tags:
+      - Admin - Users
+    get:
+      description: Admin can retrieve user detail by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User detail
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: User not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user by ID
+      tags:
+      - Admin - Users
+    put:
+      consumes:
+      - application/json
+      description: Admin updates user information
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update user payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/route.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User updated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update user
+      tags:
+      - Admin - Users
+  /admin/users/{id}/role:
+    put:
+      consumes:
+      - application/json
+      description: Admin updates role of a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update role payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/route.UpdateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role updated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update user role
+      tags:
+      - Admin - Users
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login menggunakan username dan password
+      parameters:
+      - description: Login payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/route.loginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login success
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login user
+      tags:
+      - Auth
+  /auth/logout:
+    post:
+      description: Logout user (JWT stateless, client-side logout)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout success
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Logout user
+      tags:
+      - Auth
+  /auth/profile:
+    get:
+      description: Get profile user yang sedang login
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - Auth
+  /auth/refresh:
+    post:
+      description: Generate token baru dari token lama
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token refreshed
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Invalid or expired token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Refresh JWT token
+      tags:
+      - Auth
+  /roles:
+    get:
+      description: Retrieve list of available roles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of roles
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Failed to fetch roles
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all roles
+      tags:
+      - Roles
+  /students/me:
+    get:
+      description: Get logged-in student's profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Student profile
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Student not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get my student profile
+      tags:
+      - Students
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

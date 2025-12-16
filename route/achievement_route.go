@@ -28,6 +28,19 @@ func NewAchievementHandler(svc *service.AchievementService) *AchievementHandler 
 	return &AchievementHandler{svc: svc}
 }
 
+// CreateAchievement godoc
+// @Summary Create achievement (draft)
+// @Description Mahasiswa membuat prestasi baru dengan status draft
+// @Tags Achievements
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body model.Achievement true "Achievement payload"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /achievements [post]
 func (h *AchievementHandler) Create(c *gin.Context) {
 	userID := c.GetString(middleware.ContextUserIDKey)
 
@@ -51,6 +64,16 @@ func (h *AchievementHandler) Create(c *gin.Context) {
 		},
 	})
 }
+
+// GetMyAchievements godoc
+// @Summary Get my achievements
+// @Description Mahasiswa melihat semua prestasi miliknya
+// @Tags Achievements
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {array} model.Achievement
+// @Failure 401 {object} map[string]string
+// @Router /achievements/me [get]
 func (h *AchievementHandler) GetMyAchievements(c *gin.Context) {
 	userID := c.GetString(middleware.ContextUserIDKey)
 
@@ -65,6 +88,19 @@ func (h *AchievementHandler) GetMyAchievements(c *gin.Context) {
 		"data":   acs,
 	})
 }
+
+// SubmitAchievement godoc
+// @Summary Submit achievement for verification
+// @Description Mahasiswa submit prestasi draft untuk diverifikasi dosen wali
+// @Tags Achievements
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Achievement Reference ID"
+// @Success 200 {object} model.AchievementReference
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /achievements/{id}/submit [post]
 func (h *AchievementHandler) Submit(c *gin.Context) {
 	userID := c.GetString(middleware.ContextUserIDKey)
 	refID := c.Param("id")
@@ -89,6 +125,18 @@ type rejectRequest struct {
 	Note string `json:"note" binding:"required"`
 }
 
+// VerifyAchievement godoc
+// @Summary Verify achievement
+// @Description Dosen wali atau admin memverifikasi prestasi mahasiswa
+// @Tags Achievements
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Achievement Reference ID"
+// @Success 200 {object} model.AchievementReference
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /achievements/{id}/verify [post]
 func (h *AchievementHandler) Verify(c *gin.Context) {
     userID := c.GetString(middleware.ContextUserIDKey)
     refID := c.Param("id")
@@ -115,6 +163,20 @@ func (h *AchievementHandler) Verify(c *gin.Context) {
     c.JSON(http.StatusOK, gin.H{"status":"success","data": ref})
 }
 
+// RejectAchievement godoc
+// @Summary Reject achievement
+// @Description Dosen wali menolak prestasi dengan catatan
+// @Tags Achievements
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Achievement Reference ID"
+// @Param body body rejectRequest true "Rejection note"
+// @Success 200 {object} model.AchievementReference
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /achievements/{id}/reject [post]
 func (h *AchievementHandler) Reject(c *gin.Context) {
 	userID := c.GetString(middleware.ContextUserIDKey)
 	refID := c.Param("id")
@@ -144,6 +206,18 @@ func (h *AchievementHandler) Reject(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": ref})
 }
+
+// DeleteAchievement godoc
+// @Summary Delete draft achievement
+// @Description Mahasiswa menghapus prestasi berstatus draft
+// @Tags Achievements
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Achievement Reference ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Router /achievements/{id} [delete]
 func (h *AchievementHandler) Delete(c *gin.Context) {
 	userID := c.GetString(middleware.ContextUserIDKey)
 	refID := c.Param("id")
@@ -165,6 +239,15 @@ func (h *AchievementHandler) Delete(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "achievement deleted"})
 }
+
+// GetDeletedAchievements godoc
+// @Summary Get deleted achievements
+// @Description Mahasiswa melihat prestasi yang dihapus
+// @Tags Achievements
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {array} model.Achievement
+// @Router /achievements/deleted [get]
 func (h *AchievementHandler) GetDeleted(c *gin.Context) {
     userID := c.GetString(middleware.ContextUserIDKey)
 
@@ -180,6 +263,17 @@ func (h *AchievementHandler) GetDeleted(c *gin.Context) {
     })
 }
 
+// GetBimbinganAchievements godoc
+// @Summary Get achievements under supervision
+// @Description Dosen wali melihat prestasi mahasiswa bimbingannya
+// @Tags Achievements
+// @Security BearerAuth
+// @Produce json
+// @Param page query int false "Page number"
+// @Param per_page query int false "Items per page"
+// @Param status query string false "Achievement status"
+// @Success 200 {object} map[string]interface{}
+// @Router /achievements/bimbingan [get]
 func (h *AchievementHandler) GetBimbingan(c *gin.Context) {
     userID := c.GetString(middleware.ContextUserIDKey)
 
@@ -204,6 +298,20 @@ func (h *AchievementHandler) GetBimbingan(c *gin.Context) {
         "data": rows,
     })
 }
+
+// UploadAttachment godoc
+// @Summary Upload achievement attachment
+// @Description Mahasiswa upload file bukti prestasi
+// @Tags Achievements
+// @Security BearerAuth
+// @Accept multipart/form-data
+// @Produce json
+// @Param id path string true "Achievement Reference ID"
+// @Param file formData file true "Attachment file"
+// @Success 200 {object} model.Attachment
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Router /achievements/{id}/attachments [post]
 func (h *AchievementHandler) UploadAttachment(c *gin.Context) {
 	// 🔑 ambil user dari context (WAJIB pakai constant)
 	userID := c.GetString(middleware.ContextUserIDKey)
@@ -263,6 +371,16 @@ func (h *AchievementHandler) UploadAttachment(c *gin.Context) {
 		"data":   attachment,
 	})
 }
+
+// GetAchievementHistory godoc
+// @Summary Get achievement history
+// @Description Melihat riwayat perubahan status prestasi
+// @Tags Achievements
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Achievement Reference ID"
+// @Success 200 {array} model.AchievementStatusLog
+// @Router /achievements/{id}/history [get]
 func (h *AchievementHandler) GetHistory(c *gin.Context) {
 	refID := c.Param("id")
 
@@ -277,6 +395,17 @@ func (h *AchievementHandler) GetHistory(c *gin.Context) {
 		"data":   logs,
 	})
 }
+
+// GetAchievementDetail godoc
+// @Summary Get achievement detail
+// @Description Detail prestasi (RBAC: Mahasiswa, Dosen Wali, Admin)
+// @Tags Achievements
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Achievement Reference ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} map[string]string
+// @Router /achievements/{id} [get]
 func (h *AchievementHandler) GetDetail(c *gin.Context) {
 	refID := c.Param("id")
 
@@ -299,6 +428,19 @@ func (h *AchievementHandler) GetDetail(c *gin.Context) {
 		"data":   data,
 	})
 }
+
+// UpdateAchievementDraft godoc
+// @Summary Update draft achievement
+// @Description Mahasiswa mengubah prestasi berstatus draft
+// @Tags Achievements
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Achievement Reference ID"
+// @Param body body model.Achievement true "Updated payload"
+// @Success 200 {object} model.Achievement
+// @Failure 400 {object} map[string]string
+// @Router /achievements/{id} [put]
 func (h *AchievementHandler) Update(c *gin.Context) {
 	refID := c.Param("id")
 	userID := c.GetString(middleware.ContextUserIDKey)
@@ -322,6 +464,15 @@ func (h *AchievementHandler) Update(c *gin.Context) {
 
 	c.JSON(200, gin.H{"status": "success", "data": data})
 }
+
+// GetAchievementsByRole godoc
+// @Summary Get achievements by role
+// @Description Mengambil prestasi sesuai role user (Mahasiswa, Dosen Wali, Admin)
+// @Tags Achievements
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {array} model.Achievement
+// @Router /achievements [get]
 func (h *AchievementHandler) GetListByRole(c *gin.Context) {
 	userID := c.GetString(middleware.ContextUserIDKey)
 	role := c.GetString(middleware.ContextRoleKey)

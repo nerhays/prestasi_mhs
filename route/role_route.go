@@ -18,6 +18,15 @@ func NewRoleHandler(roleService *service.RoleService) *RoleHandler {
 	return &RoleHandler{roleService: roleService}
 }
 
+// GetAllRoles godoc
+// @Summary Get all roles
+// @Description Retrieve list of available roles
+// @Tags Roles
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} map[string]interface{} "List of roles"
+// @Failure 500 {object} map[string]string "Failed to fetch roles"
+// @Router /roles [get]
 func (h *RoleHandler) GetAll(c *gin.Context) {
 	roles, err := h.roleService.GetAllRoles()
 	if err != nil {

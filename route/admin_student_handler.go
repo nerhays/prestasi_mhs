@@ -20,6 +20,19 @@ type SetAdvisorRequest struct {
 	AdvisorID string `json:"advisor_id" binding:"required"`
 }
 
+// SetAdvisor godoc
+// @Summary Assign advisor to student
+// @Description Assign dosen wali to a student (Admin only)
+// @Tags Admin - Students
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Student ID"
+// @Param body body SetAdvisorRequest true "Advisor payload"
+// @Success 200 {object} map[string]string "Advisor assigned"
+// @Failure 400 {object} map[string]string "Invalid input"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /admin/students/{id}/advisor [put]
 func (h *AdminStudentHandler) SetAdvisor(c *gin.Context) {
 	studentID := c.Param("id")
 
@@ -53,6 +66,18 @@ func NewAdminAchievementHandler(
 	return &AdminAchievementHandler{achievementSvc}
 }
 
+// GetAllAchievements godoc
+// @Summary Get all achievements
+// @Description Admin can view all achievements with pagination and filter
+// @Tags Admin - Achievements
+// @Security BearerAuth
+// @Produce json
+// @Param page query int false "Page number"
+// @Param limit query int false "Items per page"
+// @Param status query string false "Achievement status"
+// @Success 200 {object} map[string]interface{} "List of achievements"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /admin/achievements [get]
 func (h *AdminAchievementHandler) GetAllAchievements(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
@@ -89,6 +114,15 @@ func (h *AdminAchievementHandler) GetAllAchievements(c *gin.Context) {
 	})
 }
 
+// GetStatistics godoc
+// @Summary Get achievement statistics
+// @Description Get statistics of achievements by type and status
+// @Tags Admin - Reports
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Statistics data"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /admin/reports/statistics [get]
 func (h *AdminAchievementHandler) GetStatistics(c *gin.Context) {
 	stats, err := h.achievementSvc.GetStatistics(c.Request.Context())
 	if err != nil {
@@ -114,6 +148,15 @@ func NewAdminStudentQueryHandler(
 	return &AdminStudentQueryHandler{studentSvc, achievementsvc}
 }
 
+// GetAllStudents godoc
+// @Summary Get all students
+// @Description Admin can view all students
+// @Tags Admin - Students
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} map[string]interface{} "List of students"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /admin/students [get]
 func (h *AdminStudentQueryHandler) GetAll(c *gin.Context) {
 	data, err := h.studentSvc.GetAllStudents()
 	if err != nil {
@@ -123,6 +166,16 @@ func (h *AdminStudentQueryHandler) GetAll(c *gin.Context) {
 	c.JSON(200, gin.H{"status": "success", "data": data})
 }
 
+// GetStudentByID godoc
+// @Summary Get student by ID
+// @Description Get detail student by ID
+// @Tags Admin - Students
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Student ID"
+// @Success 200 {object} map[string]interface{} "Student detail"
+// @Failure 404 {object} map[string]string "Student not found"
+// @Router /admin/students/{id} [get]
 func (h *AdminStudentQueryHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
 	data, err := h.studentSvc.GetStudentByID(id)
@@ -133,6 +186,16 @@ func (h *AdminStudentQueryHandler) GetByID(c *gin.Context) {
 	c.JSON(200, gin.H{"status": "success", "data": data})
 }
 
+// GetStudentAchievements godoc
+// @Summary Get student achievements
+// @Description Get all achievements for a student
+// @Tags Admin - Students
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Student ID"
+// @Success 200 {object} map[string]interface{} "Student achievements"
+// @Failure 404 {object} map[string]string "Student not found"
+// @Router /admin/students/{id}/achievements [get]
 func (h *AdminStudentQueryHandler) GetAchievements(c *gin.Context) {
 	studentID := c.Param("id")
 
@@ -158,6 +221,15 @@ func NewAdminLecturerHandler(
 	return &AdminLecturerHandler{lecturerSvc}
 }
 
+// GetAllLecturers godoc
+// @Summary Get all lecturers
+// @Description Retrieve list of all lecturers
+// @Tags Admin - Lecturers
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} map[string]interface{} "List of lecturers"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /admin/lecturers [get]
 func (h *AdminLecturerHandler) GetAll(c *gin.Context) {
 	data, err := h.lecturerSvc.GetAllLecturers()
 	if err != nil {
@@ -167,6 +239,16 @@ func (h *AdminLecturerHandler) GetAll(c *gin.Context) {
 	c.JSON(200, gin.H{"status": "success", "data": data})
 }
 
+// GetAdvisees godoc
+// @Summary Get lecturer advisees
+// @Description Get students supervised by a lecturer
+// @Tags Admin - Lecturers
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Lecturer ID"
+// @Success 200 {object} map[string]interface{} "List of advisees"
+// @Failure 404 {object} map[string]string "Lecturer not found"
+// @Router /admin/lecturers/{id}/advisees [get]
 func (h *AdminLecturerHandler) GetAdvisees(c *gin.Context) {
 	id := c.Param("id")
 	data, err := h.lecturerSvc.GetAdvisees(id)
@@ -177,7 +259,16 @@ func (h *AdminLecturerHandler) GetAdvisees(c *gin.Context) {
 	c.JSON(200, gin.H{"status": "success", "data": data})
 }
 
-
+// GetStudentReport godoc
+// @Summary Get student achievement report
+// @Description Get achievement summary report for a student
+// @Tags Admin - Reports
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Student ID"
+// @Success 200 {object} map[string]interface{} "Student report"
+// @Failure 404 {object} map[string]string "Student not found"
+// @Router /admin/reports/student/{id} [get]
 func (h *AdminAchievementHandler) GetStudentReport(c *gin.Context) {
 	studentID := c.Param("id")
 
