@@ -124,13 +124,12 @@ func (r *achievementRepository) FindByIDs(ctx context.Context, ids []string) ([]
     if len(ids) == 0 {
         return []model.Achievement{}, nil
     }
-    // Convert to ObjectID when IDs are hex; if stored as hex strings of ObjectId, use primitive.ObjectIDFromHex
-    // In your model, mongo_achievement_id stored as hex string; we can query by _id: ObjectId(hex)
+
     objIDs := make([]primitive.ObjectID, 0, len(ids))
     for _, h := range ids {
         oid, err := primitive.ObjectIDFromHex(h)
         if err != nil {
-            continue // skip invalid
+            continue 
         }
         objIDs = append(objIDs, oid)
     }

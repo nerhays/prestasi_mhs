@@ -322,7 +322,7 @@ func (s *AchievementService) GetDeletedAchievements(ctx context.Context, userID 
 
 func (s *AchievementService) GetBimbinganAchievements(ctx context.Context, verifierUserID string, page, perPage int, status *model.AchievementStatus) (int64, []map[string]interface{}, error) {
     // 1. find lecturer by user id
-    lect, err := s.lecturerRepo.FindByUserID(verifierUserID) // if you don't have this, use FindByUserID; else FindByID after mapping
+    lect, err := s.lecturerRepo.FindByUserID(verifierUserID) 
     if err != nil {
         return 0, nil, err
     }
@@ -371,7 +371,6 @@ func (s *AchievementService) GetBimbinganAchievements(ctx context.Context, verif
     // 7. index achievements by id (hex)
     achMap := map[string]model.Achievement{}
     for _, a := range achievements {
-        // a.ID is primitive.ObjectID; convert to hex string
         achMap[a.ID.Hex()] = a
     }
 
